@@ -6,7 +6,9 @@ from pycocotools.coco import COCO
 import skimage.io as io
 import matplotlib.pyplot as plt
 from pathlib import Path
+import torch.nn as nn
 
+import torchvision
 import torch
 
 
@@ -16,8 +18,6 @@ coco = COCO(annFile)
 imgIds = coco.getImgIds()
 
 len(coco.imgs)
-
-coco.imgs[2]
 
 
 len(imgIds)
@@ -68,7 +68,45 @@ I = io.imread(dataDir / img["file_name"])
 I.shape
 img = coco.loadImgs(imgIds[2])[0]
 
+im_tensor = torch.from_numpy(I / 255.0).permute(2, 1, 0).float()
+w, h = im_tensor.shape[1:3]
 
+
+cell_width = w // 7
+cell_height = h // 7
+
+bboxes = torch.tensor(bboxes, dtype=torch.float32)
+classes = torch.tensor(classes, dtype=torch.int8)
+
+box_widths = bboxes[:, 2]
+box_heights = bboxes[:, 3]
+box_center_xs = bboxes[:, 0] + 0.5 * bboxes[:, 2]
+box_center_ys = bboxes[:, 1] + 0.5 * bboxes[:, 3]
+
+
+# i, j indexes of the grid cell that contains the center of the bounding box
+box_i = torch.floor(box_center_xs / cell_width).long()
+box_j = torch.floor(box_center_ys / cell_height).long()
+
+classes = coco.loadCats(coco.getCatIds())
+clsids2clsnames = {cls["id"]: cls["name"] for cls in classes}
+clsnames2clsids = {cls["name"]: cls["id"] for cls in classes}
+
+
+for idx, b in enumerate(range(bboxes.size(0))):
+    print(idx, "idx")
+    print(b, "b")
+
+
+if len(bboxes) > 0:
+    bboxes /= torch.Tensor([[w, h, w, h]]).expand_as(bboxes)
+
+
+backbone = torchvision.models.resnet18(pretrained=True)
+
+backbone = nn.Sequential(
+    *list(backbone.children())[:-2]  # Remove the last two layers (avgpool and fc)
+)
 # for ann in anns:
 #     bbox = ann["bbox"]
 #     bboxes.append(bbox)
