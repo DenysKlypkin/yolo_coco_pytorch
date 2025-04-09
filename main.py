@@ -25,6 +25,7 @@ len(imgIds)
 len(coco.getCatIds())
 imgs = coco.loadImgs(imgIds[3])
 
+
 # coco get bboxes
 bboxes = []
 for img in imgs:
@@ -107,6 +108,27 @@ backbone = torchvision.models.resnet18(pretrained=True)
 backbone = nn.Sequential(
     *list(backbone.children())[:-2]  # Remove the last two layers (avgpool and fc)
 )
+
+
+shifts_x = torch.arange(0, 7, dtype=torch.int32) * 1 / float(7)
+shifts_y = (
+    torch.arange(
+        0,
+        7,
+        dtype=torch.int32,
+    )
+    * 1
+    / float(7)
+)
+# it is like cartesian product of the 2 tensors
+shifts_y, shifts_x = torch.meshgrid(shifts_y, shifts_x, indexing="ij")
+
+shifts_x.view((1, 7, 7, 1))
+
+
+shifts_x = shifts_x.view((1, 7, 7, 1)).repeat(1, 1, 1, 7)
+shifts_y = shifts_y.view((1, 7, 7, 1)).repeat(1, 1, 1, 7)
+
 # for ann in anns:
 #     bbox = ann["bbox"]
 #     bboxes.append(bbox)
