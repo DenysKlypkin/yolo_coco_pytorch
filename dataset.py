@@ -23,6 +23,7 @@ class COCODataset(Dataset):
         return len(self.coco.imgs)
 
     def __getitem__(self, idx):
+        print(f"Loading image {idx}...")
         imgIds = self.coco.getImgIds()
         img_info = self.coco.loadImgs(imgIds[idx])[0]
 

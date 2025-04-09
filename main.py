@@ -11,6 +11,10 @@ import torch.nn as nn
 import torchvision
 import torch
 
+from train import train
+
+
+train()
 
 dataDir = Path("datasets/coco/images/val2017")
 annFile = Path("datasets/coco/annotations/instances_val2017.json")
@@ -128,6 +132,7 @@ shifts_x.view((1, 7, 7, 1))
 
 shifts_x = shifts_x.view((1, 7, 7, 1)).repeat(1, 1, 1, 7)
 shifts_y = shifts_y.view((1, 7, 7, 1)).repeat(1, 1, 1, 7)
+
 
 # for ann in anns:
 #     bbox = ann["bbox"]
