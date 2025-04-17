@@ -3,7 +3,7 @@ import torchvision
 
 
 class CustomYOLO(nn.Module):
-    def __init__(self, im_size, num_classes):
+    def __init__(self, num_classes):
         super(CustomYOLO, self).__init__()
         self.S = 7  # number of grid cells
         self.B = 5
@@ -38,10 +38,11 @@ class CustomYOLO(nn.Module):
             ),
             nn.ReLU(),
             nn.Dropout(0.6),
-            nn.Linear(2028, self.S * self.S * (5 * self.B + self.C)),
+            nn.Linear(2028, self.S * self.S * self.B * (5 + self.C)),
         )
 
     def forward(self, x):
+        print(x.shape, "x")
         x = self.backbone(x)
         x = self.conv_layer(x)
         x = self.fc(x)

@@ -1,7 +1,18 @@
-import io
 import torch
 from torch.utils.data.dataset import Dataset
 from pycocotools.coco import COCO
+from pathlib import Path
+import pandas as pd
+import os
+from pycocotools.coco import COCO
+import skimage.io
+from skimage.transform import resize
+import matplotlib.pyplot as plt
+from pathlib import Path
+import torch.nn as nn
+
+import torchvision
+import torch
 
 from config import DATA_DIR
 
@@ -32,21 +43,31 @@ class COCODataset(Dataset):
 
         bboxes = [ann["bbox"] for ann in anns]
         classes = [ann["category_id"] for ann in anns]
-        img = io.imread(DATA_DIR / img_info["file_name"])
 
+        img = skimage.io.imread(Path(DATA_DIR) / img_info["file_name"])
         im_tensor = torch.from_numpy(img / 255.0).permute(2, 1, 0).float()
-        w, h = im_tensor.shape[1:3]
+        _, w, h = im_tensor.shape
         # ? need to normilize by channels
 
         bboxes = torch.tensor(bboxes, dtype=torch.float32)
         classes = torch.tensor(classes, dtype=torch.int8)
-        w, h = im_tensor.shape[:2]
-        target_dim = 5 * self.B + self.C
+        target_dim = 5 * (self.B + self.C)
 
         targets = torch.zeros(self.S, self.S, target_dim)
 
-        cell_width = w // self.S
-        cell_height = h // self.S
+        # if image, does not have any bounding boxes, return the image and empty targets
+        if len(bboxes) == 0:
+            img = resize(img, (224, 224), anti_aliasing=True)
+            im_tensor = torch.from_numpy(img / 255.0).permute(2, 0, 1).float()
+            return {
+                "image": im_tensor,
+                "target": targets,
+                # "bboxes": bboxes,
+                # "classes": classes,
+            }
+
+        cell_width = w / self.S
+        cell_height = h / self.S
 
         box_widths = bboxes[:, 2]
         box_heights = bboxes[:, 3]
@@ -56,7 +77,6 @@ class COCODataset(Dataset):
         # i, j indexes of the grid cell that contains the center of the bounding box
         box_i = torch.floor(box_center_xs / cell_width).long()
         box_j = torch.floor(box_center_ys / cell_height).long()
-
         # the offset of the center for each bounding box
         box_xc_cell_offset = (box_center_xs - box_i * cell_width) / cell_width
         box_yc_cell_offset = (box_center_ys - box_j * cell_height) / cell_height
@@ -77,9 +97,11 @@ class COCODataset(Dataset):
         if len(bboxes) > 0:
             bboxes /= torch.Tensor([[w, h, w, h]]).expand_as(bboxes)
 
-        targets = {
-            "bboxes": bboxes,
-            "classes": classes,
+        img = resize(img, (224, 224), anti_aliasing=True)
+        im_tensor = torch.from_numpy(img / 255.0).permute(2, 0, 1).float()
+        return {
+            "image": im_tensor,
             "target": targets,
+            # "bboxes": bboxes,
+            # "classes": classes,
         }
-        return img, targets

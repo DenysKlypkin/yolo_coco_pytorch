@@ -39,7 +39,7 @@ def get_IOU(boxes_1: torch.Tensor, boxes_2: torch.Tensor):
 
 
 class YOLOLoss(nn.Module):
-    def __init__(self, S=7, B=5, C=20, lambda_coord=5, lambda_noobj=0.5):
+    def __init__(self, S=7, B=5, C=80, lambda_coord=5, lambda_noobj=0.5):
         super(YOLOLoss, self).__init__()
         self.S = S
         self.B = B
@@ -49,8 +49,9 @@ class YOLOLoss(nn.Module):
 
     def forward(self, preds: torch.Tensor, targets: torch.Tensor):
         batch_size = preds.size(0)
-
-        preds = preds.view(batch_size, self.S, self.S, self.B * 5 + self.C)
+        print(batch_size, "preds")
+        print(preds.shape, "preds")
+        preds = preds.view(batch_size, self.S, self.S, self.B * (5 + self.C))
 
         shifts_x = torch.arange(0, self.S, dtype=torch.int32) * 1 / float(self.S)
         shifts_y = (
@@ -65,8 +66,12 @@ class YOLOLoss(nn.Module):
         # i have to add them to lsat dim of (batch, s,s,5,b)
         shifts_y, shifts_x = torch.meshgrid(shifts_y, shifts_x, indexing="ij")
 
-        shifts_x = shifts_x.view((1, self.S, self.S, 1)).repeat(1, 1, 1, self.B)
-        shifts_y = shifts_y.view((1, self.S, self.S, 1)).repeat(1, 1, 1, self.B)
+        shifts_x = (
+            shifts_x.view((1, self.S, self.S, 1)).repeat(1, 1, 1, self.B).to("cuda")
+        )
+        shifts_y = (
+            shifts_y.view((1, self.S, self.S, 1)).repeat(1, 1, 1, self.B).to("cuda")
+        )
 
         pred_boxes = preds[..., : self.B * 5].view(
             batch_size, self.S, self.S, self.B, 5
@@ -105,7 +110,12 @@ class YOLOLoss(nn.Module):
         max_iou_val, max_iou_idx = iou.max(dim=-1, keepdim=True)
         max_iou_idx = max_iou_idx.repeat(1, 1, 1, self.B)
 
-        bb_idxs = torch.arange(self.B).reshape(1, 1, 1, self.B).expand_as(max_iou_idx)
+        bb_idxs = (
+            torch.arange(self.B)
+            .reshape(1, 1, 1, self.B)
+            .expand_as(max_iou_idx)
+            .to("cuda")
+        )
         is_max_iou_box = (max_iou_idx == bb_idxs).long()
         obj_indicator = targets[..., 4:5]
 

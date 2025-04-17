@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import pandas as pd
 import os
 from pycocotools.coco import COCO
@@ -23,7 +22,9 @@ imgIds = coco.getImgIds()
 
 len(coco.imgs)
 
+image_test = io.imread(dataDir / coco.imgs[imgIds[0]]["file_name"])
 
+plt.imshow(image_test)
 len(imgIds)
 
 len(coco.getCatIds())
@@ -33,7 +34,7 @@ imgs = coco.loadImgs(imgIds[3])
 # coco get bboxes
 bboxes = []
 for img in imgs:
-    annIds = coco.getAnnIds(imgIds=[img["id"]])
+    annIds = coco.getAnnIds(imgIds=481404)
     anns = coco.loadAnns(annIds)
     for ann in anns:
         bbox = ann["bbox"]
